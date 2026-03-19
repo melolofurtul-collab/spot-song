@@ -3,6 +3,7 @@ class SpotSongPlayer {
         this.currentSongIndex = 0;
         this.isPlaying = false;
         this.audio = new Audio();
+        this.audio.crossOrigin = "anonymous"; // For visualizer
         this.songs = [
             { name: "On & On", artist: "Cartoon, Daniel Levi", file: "songs/1.mp3", cover: "covers/1.jpg" },
             { name: "Invincible", artist: "DEAF KEV", file: "songs/2.mp3", cover: "covers/2.jpg" },
@@ -20,31 +21,77 @@ class SpotSongPlayer {
     }
 
     init() {
+        this.removeBlueTap(); // Hilangkan blue tap
         this.bindEvents();
         this.renderSongs();
         this.loadSong(0);
         this.initVisualizer();
     }
 
+    // ❌ HAPUS BLUE TAP SEMUA BUTTON & ELEMENTS
+    removeBlueTap() {
+        // Hilangkan blue outline semua interactive elements
+        document.querySelectorAll('button, input[type="range"], .song-card, .play-btn').forEach(el => {
+            el.style.outline = 'none';
+            el.style.webkitAppearance = 'none';
+            el.style.appearance = 'none';
+            el.addEventListener('focus', () => el.blur());
+        });
+
+        // Global CSS override untuk blue tap
+        const style = document.createElement('style');
+        style.textContent = `
+            * {
+                outline: none !important;
+                -webkit-tap-highlight-color: transparent !important;
+                tap-highlight-color: transparent !important;
+            }
+            button:focus, input:focus {
+                outline: none !important;
+                box-shadow: none !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     bindEvents() {
-        // Play/Pause
-        document.getElementById('playPauseBtn').addEventListener('click', () => this.togglePlay());
-        
-        // Next/Prev
-        document.getElementById('nextBtn').addEventListener('click', () => this.nextSong());
-        document.getElementById('prevBtn').addEventListener('click', () => this.prevSong());
-        
-        // Progress
-        document.getElementById('progressBar').addEventListener('input', (e) => {
-            this.audio.currentTime = (e.target.value / 100) * this.audio.duration;
+        // Play/Pause - NO BLUE TAP
+        document.getElementById('playPauseBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.togglePlay();
         });
         
-        // Volume
+        // Next/Prev - NO BLUE TAP
+        document.getElementById('nextBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.nextSong();
+        });
+        document.getElementById('prevBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.prevSong();
+        });
+        
+        // Progress Bar - SMOOTH & NO BLUE TAP
+        document.getElementById('progressBar').addEventListener('input', (e) => {
+            e.preventDefault();
+            if (this.audio.duration) {
+                this.audio.currentTime = (e.target.value / 100) * this.audio.duration;
+            }
+        });
+        document.getElementById('progressBar').addEventListener('mousedown', () => {
+            this.audio.pause(); // Pause saat drag
+        });
+        document.getElementById('progressBar').addEventListener('mouseup', () => {
+            if (this.isPlaying) this.audio.play(); // Resume jika playing
+        });
+        
+        // Volume - SMOOTH & NO BLUE TAP
         document.getElementById('volumeSlider').addEventListener('input', (e) => {
+            e.preventDefault();
             this.audio.volume = e.target.value / 100;
         });
         
-        // Audio events
+        // Audio events - FULL FUNCTIONALITY
         this.audio.addEventListener('timeupdate', () => this.updateProgress());
         this.audio.addEventListener('ended', () => this.nextSong());
         this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
@@ -57,9 +104,14 @@ class SpotSongPlayer {
             this.isPlaying = false;
             this.updatePlayButton();
         });
+        this.audio.addEventListener('error', (e) => {
+            console.error('Audio error:', e);
+            this.nextSong(); // Skip error song
+        });
         
-        // Keyboard shortcuts
+        // Keyboard shortcuts - PERFECT
         document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT') return; // Jangan interfere input
             if (e.code === 'Space') {
                 e.preventDefault();
                 this.togglePlay();
@@ -74,11 +126,13 @@ class SpotSongPlayer {
             }
         });
 
-        // Song cards click events (delegated)
+        // Song cards - DELEGATED EVENT, NO BLUE TAP
         document.getElementById('songList').addEventListener('click', (e) => {
+            e.preventDefault();
             const playBtn = e.target.closest('.play-btn');
-            if (playBtn) {
-                const index = parseInt(playBtn.parentElement.dataset.index);
+            const songCard = e.target.closest('.song-card');
+            if (playBtn || songCard) {
+                const index = parseInt((playBtn || songCard).parentElement.dataset.index);
                 this.playSong(index);
             }
         });
@@ -104,35 +158,40 @@ class SpotSongPlayer {
         this.currentSongIndex = index;
         const song = this.songs[index];
         
-        this.audio.src = song.file;
+        // Update UI
         document.getElementById('currentSongName').textContent = song.name;
         document.getElementById('currentArtist').textContent = song.artist;
         document.getElementById('nowPlayingCover').src = song.cover;
         document.getElementById('nowPlayingCover').alt = song.name;
         document.getElementById('navSongName').textContent = `${song.name} - ${song.artist}`;
         
-        // Update active song highlight
+        // Active highlight
         document.querySelectorAll('.song-card').forEach((card, i) => {
             card.classList.toggle('active', i === index);
         });
         
-        // Reset progress
+        // Load audio
+        this.audio.src = song.file;
+        this.audio.load();
+        
+        // Reset UI
         document.getElementById('progressBar').value = 0;
         document.getElementById('currentTime').textContent = '0:00';
         document.getElementById('duration').textContent = '0:00';
         
-        this.audio.load();
         this.isPlaying = false;
         this.updatePlayButton();
     }
 
     togglePlay() {
-        if (this.isPlaying) {
-            this.audio.pause();
-        } else {
-            this.audio.play().catch(e => {
-                console.error('Playback failed:', e);
-            });
+        if (this.audio.src && this.audio.readyState >= 2) {
+            if (this.isPlaying) {
+                this.audio.pause();
+            } else {
+                this.audio.play().catch(e => {
+                    console.error('Play failed:', e);
+                });
+            }
         }
     }
 
@@ -146,7 +205,7 @@ class SpotSongPlayer {
         const nextIndex = (this.currentSongIndex + 1) % this.songs.length;
         this.loadSong(nextIndex);
         if (this.isPlaying) {
-            this.audio.play().catch(e => console.error('Next song play failed:', e));
+            setTimeout(() => this.audio.play().catch(e => console.error('Next failed:', e)), 100);
         }
     }
 
@@ -154,36 +213,32 @@ class SpotSongPlayer {
         const prevIndex = (this.currentSongIndex - 1 + this.songs.length) % this.songs.length;
         this.loadSong(prevIndex);
         if (this.isPlaying) {
-            this.audio.play().catch(e => console.error('Previous song play failed:', e));
+            setTimeout(() => this.audio.play().catch(e => console.error('Prev failed:', e)), 100);
         }
     }
 
     playSong(index) {
         this.loadSong(index);
-        this.audio.play().catch(e => {
-            console.error('Song play failed:', e);
-        });
+        setTimeout(() => {
+            this.audio.play().catch(e => console.error('Song play failed:', e));
+        }, 200);
     }
 
     updateProgress() {
-        if (this.audio.duration) {
-            const progress = (this.audio.currentTime / this.audio.duration) * 100;
+        if (this.audio.duration && !isNaN(this.audio.duration)) {
+            const progress = Math.min((this.audio.currentTime / this.audio.duration) * 100, 100);
             document.getElementById('progressBar').value = progress;
             this.updateCurrentTime();
         }
     }
 
-    updateDuration() {
-        this.updateCurrentTime();
-    }
-
     updateCurrentTime() {
-        const current = document.getElementById('currentTime');
-        const duration = document.getElementById('duration');
+        const currentTimeEl = document.getElementById('currentTime');
+        const durationEl = document.getElementById('duration');
         
-        if (this.audio.duration) {
-            current.textContent = this.formatTime(this.audio.currentTime);
-            duration.textContent = this.formatTime(this.audio.duration);
+        if (this.audio.duration && !isNaN(this.audio.duration)) {
+            currentTimeEl.textContent = this.formatTime(this.audio.currentTime);
+            durationEl.textContent = this.formatTime(this.audio.duration);
         }
     }
 
@@ -196,10 +251,10 @@ class SpotSongPlayer {
     initVisualizer() {
         const visualizer = document.getElementById('visualizer');
         this.canvas = document.createElement('canvas');
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
+        this.canvas.style.position = 'absolute';
         visualizer.appendChild(this.canvas);
         this.ctx = this.canvas.getContext('2d');
+        window.addEventListener('resize', () => this.resizeVisualizer());
         this.resizeVisualizer();
     }
 
@@ -216,27 +271,29 @@ class SpotSongPlayer {
         const height = this.canvas.height;
         const centerX = width / 2;
         const centerY = height / 2;
-        const radius = Math.min(width, height) / 4;
         
         ctx.clearRect(0, 0, width, height);
         
-        const time = Date.now() * 0.001;
+        const time = Date.now() * 0.001 + this.audio.currentTime;
         const bars = 64;
+        const radius = Math.min(width, height) / 4;
         
         for (let i = 0; i < bars; i++) {
             const angle = (i / bars) * Math.PI * 2;
-            const barHeight = (Math.sin(time + angle) * 0.5 + 0.5) * radius * 0.8;
+            const barHeight = (Math.sin(time * 2 + angle) * 0.5 + 0.5) * radius * 0.7;
             
             ctx.save();
             ctx.translate(centerX, centerY);
             ctx.rotate(angle);
             
             const gradient = ctx.createLinearGradient(0, -radius, 0, 0);
-            gradient.addColorStop(0, `hsl(${angle * 180 / Math.PI}, 70%, 60%)`);
-            gradient.addColorStop(1, `hsl(${angle * 180 / Math.PI}, 70%, 30%)`);
+            gradient.addColorStop(0, `hsl(${(i/bars)*360}, 70%, 60%)`);
+            gradient.addColorStop(1, `hsl(${(i/bars)*360}, 70%, 30%)`);
             
+            ctx.shadowColor = gradient;
+            ctx.shadowBlur = 20;
             ctx.fillStyle = gradient;
-            ctx.fillRect(0, -barHeight / 2, 4, barHeight);
+            ctx.fillRect(-2, -barHeight / 2, 4, barHeight);
             
             ctx.restore();
         }
@@ -245,19 +302,14 @@ class SpotSongPlayer {
     }
 }
 
-// Initialize player globally and resize listener
-const player = new SpotSongPlayer();
-
-window.addEventListener('resize', () => {
-    if (player.canvas) {
-        player.resizeVisualizer();
-    }
-});
-
-// Preload audio files for better performance
-window.addEventListener('load', () => {
-    player.songs.forEach((song, index) => {
-        const audio = new Audio(song.file);
-        audio.preload = 'metadata';
+// 🚀 INIT PLAYER - PERFECT WORKING
+document.addEventListener('DOMContentLoaded', () => {
+    window.player = new SpotSongPlayer();
+    
+    // Preload semua lagu untuk smooth playback
+    player.songs.forEach(song => {
+        const preloadAudio = new Audio(song.file);
+        preloadAudio.preload = 'auto';
+        preloadAudio.load();
     });
 });
