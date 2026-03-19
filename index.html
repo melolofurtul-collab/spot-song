@@ -30,7 +30,7 @@
         <!-- Song List -->
         <div class="songs-grid" id="songList">
             <!-- Songs populated by JavaScript -->
-            <div class="song-placeholder">
+            <div class="song-placeholder" id="loadingPlaceholder">
                 <i class="fas fa-spinner fa-spin"></i>
                 <p>Loading playlist...</p>
             </div>
@@ -46,13 +46,13 @@
         </div>
 
         <div class="player-controls">
-            <button class="control-btn" id="prevBtn" title="Previous">
+            <button class="control-btn" id="prevBtn" title="Previous" type="button">
                 <i class="fas fa-step-backward"></i>
             </button>
-            <button class="control-btn play-pause-btn" id="playPauseBtn" title="Play/Pause">
+            <button class="control-btn play-pause-btn" id="playPauseBtn" title="Play/Pause" type="button">
                 <i class="fas fa-play"></i>
             </button>
-            <button class="control-btn" id="nextBtn" title="Next">
+            <button class="control-btn" id="nextBtn" title="Next" type="button">
                 <i class="fas fa-step-forward"></i>
             </button>
         </div>
