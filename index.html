@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SpotSong - Modern Music Player</title>
     <link rel="stylesheet" href="style.css">
@@ -17,7 +16,7 @@
             <span>SpotSong</span>
         </div>
         <div class="nav-song-info">
-            <span id="navSongName" class="now-playing">Select a song...</span>
+            <span id="navSongName" class="now-playing">Select a song to start...</span>
         </div>
     </nav>
 
@@ -25,49 +24,53 @@
     <main class="main-container">
         <div class="playlist-header">
             <h1><i class="fas fa-music"></i> Best of NCS</h1>
-            <p>No Copyright Sounds - Electronic Dance Music</p>
+            <p>10 🔥 Electronic Dance Tracks - No Copyright Sounds</p>
         </div>
 
         <!-- Song List -->
         <div class="songs-grid" id="songList">
-            <!-- Songs will be populated by JavaScript -->
+            <!-- Songs populated by JavaScript -->
+            <div class="song-placeholder">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading playlist...</p>
+            </div>
         </div>
     </main>
 
     <!-- Player Controls -->
     <div class="player">
         <div class="progress-container">
-            <span class="current-time">0:00</span>
+            <span id="currentTime" class="current-time">0:00</span>
             <input type="range" id="progressBar" class="progress-bar" min="0" max="100" value="0">
-            <span class="duration">0:00</span>
+            <span id="duration" class="duration">0:00</span>
         </div>
 
         <div class="player-controls">
-            <button class="control-btn" id="prevBtn">
+            <button class="control-btn" id="prevBtn" title="Previous">
                 <i class="fas fa-step-backward"></i>
             </button>
-            <button class="control-btn play-pause-btn" id="playPauseBtn">
+            <button class="control-btn play-pause-btn" id="playPauseBtn" title="Play/Pause">
                 <i class="fas fa-play"></i>
             </button>
-            <button class="control-btn" id="nextBtn">
+            <button class="control-btn" id="nextBtn" title="Next">
                 <i class="fas fa-step-forward"></i>
             </button>
         </div>
 
         <div class="now-playing-info">
-            <img src="covers/1.jpg" alt="Current Song" id="nowPlayingCover" class="now-playing-cover">
+            <img id="nowPlayingCover" src="covers/1.jpg" alt="Current Song" class="now-playing-cover">
             <div class="song-details">
-                <h3 id="currentSongName">On & On</h3>
-                <p id="currentArtist">Cartoon, Daniel Levi</p>
+                <h3 id="currentSongName">Select a song</h3>
+                <p id="currentArtist">Tap to play</p>
             </div>
             <div class="volume-container">
-                <i class="fas fa-volume-up"></i>
+                <i class="fas fa-volume-up" id="volumeIcon"></i>
                 <input type="range" id="volumeSlider" min="0" max="100" value="70">
             </div>
         </div>
     </div>
 
-    <!-- Visualizer -->
+    <!-- Audio Visualizer -->
     <div class="visualizer" id="visualizer"></div>
 
     <script src="script.js"></script>
